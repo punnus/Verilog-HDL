@@ -1,0 +1,29 @@
+module lfsr( out             ,  // Output of the lfsr
+             enable          ,  // Enable  for lfsr
+             clk             ,  // clock input
+             reset);            // reset input  
+
+       output [127:0] out;
+
+     //  input [7:0] data;
+       input       enable;
+       input       clk;
+       input       reset;
+
+       reg [127:0]   out;
+       wire        fb;
+ 
+ 
+       assign fb =  !(out[127] ^ out[125] ^ out[100] ^ out[99]);
+  
+       always @(posedge clk)
+         if (reset) 
+           begin
+             out <= 8'b0 ;
+           end 
+         else if (enable) 
+           begin
+             out <= {out[126:0], fb};
+           end 
+
+endmodule
