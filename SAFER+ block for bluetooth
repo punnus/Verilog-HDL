@@ -1,0 +1,390 @@
+Verilog-HDL
+===========
+module SAFER_encry_bl (
+  clk,
+  rst,
+  input_buf,
+  kin,
+  rdy1,
+  k_addr,
+  encrpy_msg);
+  
+  //Other modules//
+    
+  //Input//
+  input clk;
+  input rst; 
+  input [127:0] input_buf; //Plain text//
+  input [127:0] kin; //Key//
+  input rdy1; //Sub keys are ready//
+  
+  //Output//
+  output [127:0] encrpy_msg;
+  output [4:0] k_addr; //Addressing the memory of key scheduler//
+  //Register//
+  reg [127:0] encrpy_msg;
+  reg [4:0] k_addr;
+  reg [7:0] E [0:255]; //Exponential//
+  reg [7:0] L [0:255]; //Log45()//
+  reg [7:0] buf_in [0:15]; //Intermediate memory//
+  reg [4:0] rounds; //Number of rounds//
+  reg [2:0] state; //State of process//
+  reg [7:0] kin_buf[0:15]; //Buffers for kin//
+  reg [2:0] data_map_el; //Data map for e and l//
+  reg [3:0] temp_cnt1; //Temporary counter//
+  reg [1:0] temp_cnt2; //Temporary counter//
+  reg [1:0] state1;   //For decry_bl//
+  
+  always@(posedge clk)
+    begin
+      $monitor($time, "The value of encrpt_msg is %h",encrpy_msg);
+        if(rst)
+            begin
+              encrpy_msg<=0;
+              k_addr<=0;
+              state<=0;
+              rounds<=0;
+              data_map_el<=0;
+              temp_cnt1<=0;
+              temp_cnt2<=0;
+              state1<=1;
+              
+//kin_buf block//
+kin_buf[0]<=0;
+kin_buf[1]<=0;
+kin_buf[2]<=0;
+kin_buf[3]<=0;
+kin_buf[4]<=0;
+kin_buf[5]<=0;
+kin_buf[6]<=0;
+kin_buf[7]<=0;
+kin_buf[8]<=0;
+kin_buf[9]<=0;
+kin_buf[10]<=0;
+kin_buf[11]<=0;
+kin_buf[12]<=0;
+kin_buf[13]<=0;
+kin_buf[14]<=0;
+kin_buf[15]<=0;
+
+//E Block//
+E[0]<=1;E[1]<=45;E[2]<=226;E[3]<=147;E[4]<=190;E[5]<=69;
+E[6]<=21;E[7]<=174;E[8]<=120;E[9]<=3;E[10]<=135;
+E[11]<=164;E[12]<=184;E[13]<=56;E[14]<=207;E[15]<=63;
+E[16]<=8;E[17]<=103;E[18]<=9;E[19]<=148;E[20]<=235;
+E[21]<=38;E[22]<=168;E[23]<=107;E[24]<=189;E[25]<=24;
+E[26]<=52;E[27]<=27;E[28]<=187;E[29]<=191;E[30]<=114;
+E[31]<=247;E[32]<=64;E[33]<=53;E[34]<=72;E[35]<=156;
+E[36]<=81;E[37]<=47;E[38]<=59;E[39]<=85;E[40]<=227;
+E[41]<=192;E[42]<=159;E[43]<=216;E[44]<=211;E[45]<=243;
+E[46]<=141;E[47]<=177;E[48]<=255;E[49]<=167;E[50]<=62;
+E[51]<=220;E[52]<=134;E[53]<=119;E[54]<=215;E[55]<=166;
+E[56]<=17;E[57]<=251;E[58]<=244;E[59]<=186;E[60]<=146;
+E[61]<=145;E[62]<=100;E[63]<=131;E[64]<=241;E[65]<=51;
+E[66]<=239;E[67]<=218;E[68]<=44;E[69]<=181;E[70]<=178;
+E[71]<=43;E[72]<=136;E[73]<=209;E[74]<=153;E[75]<=203;
+E[76]<=140;E[77]<=132;E[78]<=29;E[79]<=20;E[80]<=129;
+E[81]<=151;E[82]<=113;E[83]<=202;E[84]<=95;E[85]<=163;
+E[86]<=139;E[87]<=87;E[88]<=60;E[89]<=130;E[90]<=196;
+E[91]<=82;E[92]<=92;E[93]<=28;E[94]<=232;E[95]<=160;
+E[96]<=4;E[97]<=180;E[98]<=133;E[99]<=74;E[100]<=246;
+E[101]<=19;E[102]<=84;E[103]<=182;E[104]<=223;E[105]<=12;
+E[106]<=26;E[107]<=142;E[108]<=222;E[109]<=224;E[110]<=57;
+E[111]<=252;E[112]<=32;E[113]<=155;E[114]<=36;E[115]<=78;
+E[116]<=169;E[117]<=152;E[118]<=158;E[119]<=171;E[120]<=242;
+E[121]<=96;E[122]<=208;E[123]<=108;E[124]<=234;E[125]<=250;
+E[126]<=199;E[127]<=217;E[128]<=0;E[129]<=212;E[130]<=31;
+E[131]<=110;E[132]<=67;E[133]<=188;E[134]<=236;E[135]<=83;
+E[136]<=137;E[137]<=254;E[138]<=122;E[139]<=93;E[140]<=73;
+E[141]<=201;E[142]<=50;E[143]<=194;E[144]<=249;E[145]<=154;
+E[146]<=248;E[147]<=109;E[148]<=22;E[149]<=219;E[150]<=89;
+E[151]<=150;E[152]<=68;E[153]<=233;E[154]<=205;E[155]<=230;
+E[156]<=70;E[157]<=66;E[158]<=143;E[159]<=10;E[160]<=193;
+E[161]<=204;E[162]<=185;E[163]<=101;E[164]<=176;E[165]<=210;
+E[166]<=198;E[167]<=172;E[168]<=30;E[169]<=65;E[170]<=98;
+E[171]<=41;E[172]<=46;E[173]<=14;E[174]<=116;E[175]<=80;
+E[176]<=2;E[177]<=90;E[178]<=195;E[179]<=37;E[180]<=123;
+E[181]<=138;E[182]<=42;E[183]<=91;E[184]<=240;E[185]<=6;
+E[186]<=13;E[187]<=71;E[188]<=111;E[189]<=112;E[190]<=157;
+E[191]<=126;E[192]<=16;E[193]<=206;E[194]<=18;E[195]<=39;
+E[196]<=213;E[197]<=76;E[198]<=79;E[199]<=214;E[200]<=121;
+E[201]<=48;E[202]<=104;E[203]<=54;E[204]<=117;E[205]<=125;
+E[206]<=228;E[207]<=237;E[208]<=128;E[209]<=106;E[210]<=144;
+E[211]<=55;E[212]<=162;E[213]<=94;E[214]<=118;E[215]<=170;
+E[216]<=197;E[217]<=127;E[218]<=61;E[219]<=175;E[220]<=165;
+E[221]<=229;E[222]<=25;E[223]<=97;E[224]<=253;E[225]<=77;
+E[226]<=124;E[227]<=183;E[228]<=11;E[229]<=238;E[230]<=173;
+E[231]<=75;E[232]<=34;E[233]<=245;E[234]<=231;E[235]<=115;
+E[236]<=35;E[237]<=33;E[238]<=200;E[239]<=5;E[240]<=225;
+E[241]<=102;E[242]<=221;E[243]<=179;E[244]<=88;E[245]<=105;
+E[246]<=99;E[247]<=86;E[248]<=15;E[249]<=161;E[250]<=49;
+E[251]<=149;E[252]<=23;E[253]<=7;E[254]<=58;E[255]<=40;
+
+//L block//
+L[0]<=128;L[1]<=0;L[2]<=176;L[3]<=9;L[4]<=96;L[5]<=239;
+L[6]<=185;L[7]<=253;L[8]<=16;L[9]<=18;L[10]<=159;
+L[11]<=228;L[12]<=105;L[13]<=186;L[14]<=173;L[15]<=248;
+L[16]<=192;L[17]<=56;L[18]<=194;L[19]<=101;L[20]<=79;
+L[21]<=6;L[22]<=148;L[23]<=252;L[24]<=25;L[25]<=222;
+L[26]<=106;L[27]<=27;L[28]<=93;L[29]<=78;L[30]<=168;
+L[31]<=130;L[32]<=112;L[33]<=237;L[34]<=232;L[35]<=236;
+L[36]<=114;L[37]<=179;L[38]<=21;L[39]<=195;L[40]<=255;
+L[41]<=171;L[42]<=182;L[43]<=71;L[44]<=68;L[45]<=1;
+L[46]<=172;L[47]<=37;L[48]<=201;L[49]<=250;L[50]<=142;
+L[51]<=65;L[52]<=26;L[53]<=33;L[54]<=203;L[55]<=211;
+L[56]<=13;L[57]<=110;L[58]<=254;L[59]<=38;L[60]<=88;
+L[61]<=218;L[62]<=50;L[63]<=15;L[64]<=32;L[65]<=169;
+L[66]<=157;L[67]<=132;L[68]<=152;L[69]<=5;L[70]<=156;
+L[71]<=187;L[72]<=34;L[73]<=140;L[74]<=99;L[75]<=231;
+L[76]<=197;L[77]<=225;L[78]<=115;L[79]<=198;L[80]<=175;
+L[81]<=36;L[82]<=91;L[83]<=135;L[84]<=102;L[85]<=39;
+L[86]<=247;L[87]<=87;L[88]<=244;L[89]<=150;L[90]<=177;
+L[91]<=183;L[92]<=92;L[93]<=139;L[94]<=213;L[95]<=84;
+L[96]<=121;L[97]<=223;L[98]<=170;L[99]<=246;L[100]<=62;
+L[101]<=163;L[102]<=241;L[103]<=17;L[104]<=202;L[105]<=245;
+L[106]<=209;L[107]<=23;L[108]<=123;L[109]<=147;L[110]<=131;
+L[111]<=188;L[112]<=189;L[113]<=82;L[114]<=30;L[115]<=235;
+L[116]<=174;L[117]<=204;L[118]<=214;L[119]<=53;L[120]<=8;
+L[121]<=200;L[122]<=138;L[123]<=180;L[124]<=226;L[125]<=205;
+L[126]<=191;L[127]<=217;L[128]<=208;L[129]<=80;L[130]<=89;
+L[131]<=63;L[132]<=77;L[133]<=98;L[134]<=52;L[135]<=10;
+L[136]<=72;L[137]<=136;L[138]<=181;L[139]<=86;L[140]<=76;
+L[141]<=46;L[142]<=107;L[143]<=158;L[144]<=210;L[145]<=61;
+L[146]<=60;L[147]<=3;L[148]<=19;L[149]<=251;L[150]<=151;
+L[151]<=81;L[152]<=117;L[153]<=74;L[154]<=145;L[155]<=113;
+L[156]<=35;L[157]<=190;L[158]<=118;L[159]<=42;L[160]<=95;
+L[161]<=249;L[162]<=212;L[163]<=85;L[164]<=11;L[165]<=220;
+L[166]<=55;L[167]<=49;L[168]<=22;L[169]<=116;L[170]<=215;
+L[171]<=119;L[172]<=167;L[173]<=230;L[174]<=7;L[175]<=219;
+L[176]<=164;L[177]<=47;L[178]<=70;L[179]<=243;L[180]<=97;
+L[181]<=69;L[182]<=103;L[183]<=227;L[184]<=12;L[185]<=162;
+L[186]<=59;L[187]<=28;L[188]<=133;L[189]<=24;L[190]<=4;
+L[191]<=29;L[192]<=41;L[193]<=160;L[194]<=143;L[195]<=178;
+L[196]<=90;L[197]<=216;L[198]<=166;L[199]<=126;L[200]<=238;
+L[201]<=141;L[202]<=83;L[203]<=75;L[204]<=161;L[205]<=154;
+L[206]<=193;L[207]<=14;L[208]<=122;L[209]<=73;L[210]<=165;
+L[211]<=44;L[212]<=129;L[213]<=196;L[214]<=199;L[215]<=54;
+L[216]<=43;L[217]<=127;L[218]<=67;L[219]<=149;L[220]<=51;
+L[221]<=242;L[222]<=108;L[223]<=104;L[224]<=109;L[225]<=240;
+L[226]<=2;L[227]<=40;L[228]<=206;L[229]<=221;L[230]<=155;
+L[231]<=234;L[232]<=94;L[233]<=153;L[234]<=124;L[235]<=20;
+L[236]<=134;L[237]<=207;L[238]<=229;L[239]<=66;L[240]<=184;
+L[241]<=64;L[242]<=120;L[243]<=45;L[244]<=58;L[245]<=233;
+L[246]<=100;L[247]<=31;L[248]<=146;L[249]<=144;L[250]<=125;
+L[251]<=57;L[252]<=111;L[253]<=224;L[254]<=137;L[255]<=48;
+
+//buf_in block//
+buf_in[0]<=0;
+buf_in[1]<=0;
+buf_in[2]<=0;
+buf_in[3]<=0;
+buf_in[4]<=0;
+buf_in[5]<=0;
+buf_in[6]<=0;
+buf_in[7]<=0;
+buf_in[8]<=0;
+buf_in[9]<=0;
+buf_in[10]<=0;
+buf_in[11]<=0;
+buf_in[12]<=0;
+buf_in[13]<=0;
+buf_in[14]<=0;
+buf_in[15]<=0;
+
+
+          
+          end
+        else
+            if(rdy1==1&&rounds<8)
+              case(state)
+                0: begin
+                   {buf_in[15],buf_in[14],buf_in[13],buf_in[12],buf_in[11],buf_in[10],buf_in[9],buf_in[8],buf_in[7],buf_in[6],buf_in[5],buf_in[4],buf_in[3],buf_in[2],buf_in[1],buf_in[0]}<=input_buf;
+                   state<=1;
+                   k_addr<=k_addr+1;
+                 end
+                1: begin
+                    {kin_buf[15],kin_buf[14],kin_buf[13],kin_buf[12],kin_buf[11],kin_buf[10],kin_buf[9],kin_buf[8],kin_buf[7],kin_buf[6],kin_buf[5],kin_buf[4],kin_buf[3],kin_buf[2],kin_buf[1],kin_buf[0]}<=kin;
+                    state<=2;
+                    end
+                2: begin
+                    buf_in[0]<=buf_in[0]^kin_buf[0];
+                    buf_in[1]<=buf_in[1]+kin_buf[1];
+                    buf_in[2]<=buf_in[2]+kin_buf[2];
+                    buf_in[3]<=buf_in[3]^kin_buf[3];
+                    buf_in[4]<=buf_in[4]+kin_buf[4];
+                    buf_in[5]<=buf_in[5]+kin_buf[5];
+                    buf_in[6]<=buf_in[6]^kin_buf[6];
+                    buf_in[7]<=buf_in[7]+kin_buf[7];
+                    buf_in[8]<=buf_in[8]+kin_buf[8];
+                    buf_in[9]<=buf_in[9]^kin_buf[9];
+                    buf_in[10]<=buf_in[10]+kin_buf[10];
+                    buf_in[11]<=buf_in[11]+kin_buf[11];
+                    buf_in[12]<=buf_in[12]^kin_buf[12];
+                    buf_in[13]<=buf_in[13]+kin_buf[13];
+                    buf_in[14]<=buf_in[14]+kin_buf[14];
+                    buf_in[15]<=buf_in[15]^kin_buf[15];
+                    state<=3;
+                    k_addr<=k_addr+1;
+                end   
+                3:  begin
+                      if(data_map_el==3)
+                        begin
+                          data_map_el<=0;
+                          temp_cnt1<=0;
+                          temp_cnt1<=2;
+                          state<=4;
+                          {kin_buf[15],kin_buf[14],kin_buf[13],kin_buf[12],kin_buf[11],kin_buf[10],kin_buf[9],kin_buf[8],kin_buf[7],kin_buf[6],kin_buf[5],kin_buf[4],kin_buf[3],kin_buf[2],kin_buf[1],kin_buf[0]}<=kin;
+                        end
+                    else
+                      begin
+                        case(temp_cnt2)
+                          0: begin
+                              buf_in[temp_cnt1]<=E[buf_in[temp_cnt1]];
+                              temp_cnt1<=temp_cnt1+1;
+                              temp_cnt2<=temp_cnt2+1;
+                              state<=3;
+                            end
+                          1: begin
+                              buf_in[temp_cnt1]<=L[buf_in[temp_cnt1]];
+                              temp_cnt1<=temp_cnt1+1;
+                              temp_cnt2<=temp_cnt2+1;
+                              state<=3;
+                            end
+                          2: begin
+                              buf_in[temp_cnt1]<=L[buf_in[temp_cnt1]];
+                              temp_cnt1<=temp_cnt1+1;
+                              temp_cnt2<=temp_cnt2+1;
+                              state<=3;
+                            end
+                          3: begin
+                              buf_in[temp_cnt1]<=E[buf_in[temp_cnt1]];
+                              temp_cnt1<=temp_cnt1+1;
+                              temp_cnt2<=temp_cnt2+1;
+                              data_map_el<=data_map_el+1;
+                              state<=3;
+                           end
+                      endcase
+                    end
+                  end
+                4: begin
+                    buf_in[0]<=buf_in[0]+kin_buf[0];
+                    buf_in[1]<=buf_in[1]^kin_buf[1];
+                    buf_in[2]<=buf_in[2]^kin_buf[2];
+                    buf_in[3]<=buf_in[3]+kin_buf[3];
+                    buf_in[4]<=buf_in[4]+kin_buf[4];
+                    buf_in[5]<=buf_in[5]^kin_buf[5];
+                    buf_in[6]<=buf_in[6]^kin_buf[6];
+                    buf_in[7]<=buf_in[7]+kin_buf[7];
+                    buf_in[8]<=buf_in[8]+kin_buf[8];
+                    buf_in[9]<=buf_in[9]^kin_buf[9];
+                    buf_in[10]<=buf_in[10]^kin_buf[10];
+                    buf_in[11]<=buf_in[11]+kin_buf[11];
+                    buf_in[12]<=buf_in[12]+kin_buf[12];
+                    buf_in[13]<=buf_in[13]^kin_buf[13];
+                    buf_in[14]<=buf_in[14]^kin_buf[14];
+                    buf_in[15]<=buf_in[15]+kin_buf[15];
+                    state<=5;
+                  end
+                5: begin //PHT//
+                    if(temp_cnt1==2)
+                      begin
+                        state<=1;
+                        //k_addr<=k_addr+1;
+                        if(rounds==7)
+                          begin
+                           k_addr<=k_addr+1;
+                         end 
+                        rounds<=rounds+1;
+                      end
+                    else
+                      begin
+                        state<=6;
+                      end
+                    buf_in[0]<=(buf_in[0]<<1)+buf_in[1];
+                    buf_in[1]<=buf_in[0]+buf_in[1];
+                    buf_in[2]<=(buf_in[2]<<1)+buf_in[3];
+                    buf_in[3]<=buf_in[2]+buf_in[3];
+                    buf_in[4]<=(buf_in[4]<<1)+buf_in[5];
+                    buf_in[5]<=buf_in[4]+buf_in[5];
+                    buf_in[6]<=(buf_in[6]<<1)+buf_in[7];
+                    buf_in[7]<=buf_in[6]+buf_in[7];
+                    buf_in[8]<=(buf_in[8]<<1)+buf_in[9];
+                    buf_in[9]<=buf_in[8]+buf_in[9];
+                    buf_in[10]<=(buf_in[10]<<1)+buf_in[11];
+                    buf_in[11]<=buf_in[10]+buf_in[11];
+                    buf_in[12]<=(buf_in[12]<<1)+buf_in[13];
+                    buf_in[13]<=buf_in[12]+buf_in[13];
+                    buf_in[14]<=(buf_in[14]<<1)+buf_in[15];
+                    buf_in[15]<=buf_in[14]+buf_in[15];
+                  end
+                6: begin //Amrmenian Shuffle//
+                //One round of SAFER+ with bluetooth adoption. The permutation maps 0 output to input 8, output 1 to input 11 and so on//
+                // 8 11 12 15 2 1 6 5 10 9 14 13 0 7 4 3 //
+                    buf_in[0]<=buf_in[8];
+                    buf_in[1]<=buf_in[11];
+                    buf_in[2]<=buf_in[12];
+                    buf_in[3]<=buf_in[15];
+                    buf_in[4]<=buf_in[2];
+                    buf_in[5]<=buf_in[1];
+                    buf_in[6]<=buf_in[6];
+                    buf_in[7]<=buf_in[5];
+                    buf_in[8]<=buf_in[10];
+                    buf_in[9]<=buf_in[9];
+                    buf_in[10]<=buf_in[14];
+                    buf_in[11]<=buf_in[13];
+                    buf_in[12]<=buf_in[0];
+                    buf_in[13]<=buf_in[7];
+                    buf_in[14]<=buf_in[4];
+                    buf_in[15]<=buf_in[3];
+                    state<=5;
+                    temp_cnt1<=temp_cnt1+1;
+                  end
+                default: begin
+                          k_addr<=1;
+                          state<=0;
+                        end
+              endcase
+            else
+              if(rounds==8)
+                begin
+                  case(state1)
+                    1: 
+                    begin
+                  buf_in[0]<=buf_in[0]^kin_buf[0];
+                  buf_in[1]<=buf_in[1]+kin_buf[1];
+                  buf_in[2]<=buf_in[2]+kin_buf[2];
+                  buf_in[3]<=buf_in[3]^kin_buf[3];
+                  buf_in[4]<=buf_in[4]+kin_buf[4];
+                  buf_in[5]<=buf_in[5]+kin_buf[5];
+                  buf_in[6]<=buf_in[6]^kin_buf[6];
+                  buf_in[7]<=buf_in[7]+kin_buf[7];
+                  buf_in[8]<=buf_in[8]+kin_buf[8];
+                  buf_in[9]<=buf_in[9]^kin_buf[9];
+                  buf_in[10]<=buf_in[10]+kin_buf[10];
+                  buf_in[11]<=buf_in[11]+kin_buf[11];
+                  buf_in[12]<=buf_in[12]^kin_buf[12];
+                  buf_in[13]<=buf_in[13]+kin_buf[13];
+                  buf_in[14]<=buf_in[14]+kin_buf[14];
+                  buf_in[15]<=buf_in[15]^kin_buf[15];
+                  state1<=2;
+                end
+                2: 
+                begin
+                  encrpy_msg<={buf_in[15],buf_in[14],buf_in[13],buf_in[12],buf_in[11],buf_in[10],buf_in[9],buf_in[8],buf_in[7],buf_in[6],buf_in[5],buf_in[4],buf_in[3],buf_in[2],buf_in[1],buf_in[0]};
+                  state1<=2;
+                  if(rdy1==0)
+                    begin
+                      encrpy_msg<=0;
+                      k_addr<=0;
+                      state<=0;
+                      rounds<=0;
+                      data_map_el<=0;
+                      temp_cnt1<=0;
+                      temp_cnt2<=0;
+                      state1<=1;
+                      end
+                end
+            endcase
+          end
+        end
+  endmodule
