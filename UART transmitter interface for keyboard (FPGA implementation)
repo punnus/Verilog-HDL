@@ -1,0 +1,57 @@
+module uart_trans_bl(
+            tx,
+            cnt1,
+            clk,
+            rst,
+            ready,
+            data_in);
+                      
+      input [32:0]data_in;
+      input clk,rst;
+      parameter idle=1'b0,txmt=1'b1;
+      output reg tx;
+      reg [32:0]piso;
+      output reg [5:0] cnt1;
+      reg D; //Present state//
+      output reg ready;
+      
+      
+      
+        always@(posedge clk)
+          begin
+            if(~rst)
+              begin
+                tx<=1;
+                cnt1<=0;
+                ready<=1;
+                D<=idle;
+              end
+            else
+                case(D)
+                idle: begin
+                        if(ready)
+                          begin  
+                            piso<=data_in;
+                            D<=data_in[0]?idle:txmt;
+                          end
+                        else
+                            D<=txmt;    
+                      end
+                txmt: 
+                      if(cnt1<33)
+                        begin
+                          ready<=0;
+                          cnt1<=cnt1+1;
+                          tx<=piso[0];
+                          piso<={tx,piso[32:1]};
+                          D<=txmt;
+                        end
+                      else
+                        begin
+                          cnt1<=0;
+                          ready<=1;
+                          D<=idle;
+                        end
+                endcase
+        end
+  endmodule
