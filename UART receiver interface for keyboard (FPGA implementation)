@@ -1,0 +1,60 @@
+module uart_rec_bl(
+                  data_out,
+                  cnt2,
+                  rx,
+                  clk,
+                  rst,
+                  valid);
+input rx,clk,rst;
+output reg valid;
+output reg [7:0]data_out;
+parameter idle=1'b0,data=1'b1;
+output reg [5:0]cnt2;
+reg D;//present state//
+reg [7:0]sipo;//Serial in parallel out//
+
+
+
+always@(posedge clk)
+begin
+  if(~rst)
+    begin
+      data_out<=0;
+      valid<=0;
+      D<=0;
+      cnt2<=0;
+      sipo<=0;
+    end
+  else
+    begin
+      case(D)
+        idle: begin
+              D<=rx?idle:data;
+              end
+       data: begin
+                if(cnt2<32)
+                  if(cnt2<8)
+                    begin
+                      cnt2<=cnt2+1;
+                      sipo<={rx,sipo[7:1]};
+                      D<=data;
+                      valid<=0;
+                    end                  
+                  else
+                    begin
+                      cnt2<=cnt2+1; 
+                      D<=data;
+                    end
+                else
+                  begin
+                    data_out<=sipo;
+                    cnt2<=0;
+                    D<=idle;
+                    valid<=1;
+                  end
+              end
+          endcase
+          end  
+    end  
+                 
+endmodule
